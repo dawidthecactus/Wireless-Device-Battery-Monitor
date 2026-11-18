@@ -67,7 +67,8 @@ bool Cloud2(const HidColl& c, DeviceStatus& s) {
     return true;
 }
 
-// Cloud II Wireless (Kingston 0951:1718): fixed 62-byte frame, reply 0B 00 BB <cmd>.
+// Cloud II Wireless (Kingston 0951:1718) and Cloud Flight S (0951:16EA/16EB):
+// fixed 62-byte frame, reply 0B 00 BB <cmd>.
 bool Cloud2Kingston(const HidColl& c, DeviceStatus& s) {
     HidDev d;
     if (!d.Open(c)) return false;
@@ -77,7 +78,7 @@ bool Cloud2Kingston(const HidColl& c, DeviceStatus& s) {
     };
     std::vector<BYTE> r;
     if (!q(0x02, r) || r[7] > 100) return false;
-    s = Base(c.pid, L"HyperX Cloud II Wireless");
+    s = Base(c.pid, (c.pid == 0x16EA || c.pid == 0x16EB) ? L"HyperX Cloud Flight S" : L"HyperX Cloud II Wireless");
     s.percent = r[7];
     if (q(0x03, r)) s.charging = r[4] == 1;
     return true;
@@ -271,6 +272,12 @@ const Model kModels[] = {
     { 0x03F0, { 0x06BE, 0x02CC }, [](const HidColl& c) { return c.outLen() == 64 && c.inLen() == 64; }, Cloud3S },
     { 0x03F0, { 0x0696, 0x018B, 0x0D93 }, [](const HidColl& c) { return c.page() == 0xFF90 && c.usage() == 0x0303; }, Cloud2 },
     { 0x0951, { 0x1718 }, [](const HidColl& c) { return c.outLen() == 62; }, Cloud2Kingston },
+    // Cloud Flight S (0951:16EA / 16EB) uses the same 62-byte Cloud II Wireless read-only queries.
+    // The receiver's control collection is FF13:0001 on interface 5 (see issue #348).
+    // Protocol: LennardKittner/HyperHeadset, src/devices/cloud_ii_wireless.rs (MIT); hardware test pending.
+    { 0x0951, { 0x16EA, 0x16EB }, [](const HidColl& c) {
+        return c.page() == 0xFF13 && c.usage() == 0x0001 && c.inLen() == 62 && c.outLen() == 62;
+    }, Cloud2Kingston },
     { 0x03F0, { 0x098D }, [](const HidColl& c) { return c.page() >= 0xFF00 && c.outLen() >= 3; }, CloudAlpha },
     { 0x03F0, { 0x08BE }, [](const HidColl& c) { return c.page() == 0xFF13 && c.usage() == 0xFF00; }, CloudAlpha2 },
     // Pulsefire Haste 2 Wireless (0F98 tested, 0D97 untested) and Haste 2 Core Wireless (0AB5 tested) dongles.
