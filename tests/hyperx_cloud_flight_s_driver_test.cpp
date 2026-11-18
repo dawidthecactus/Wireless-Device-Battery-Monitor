@@ -3,6 +3,7 @@
 // No physical headset is required.
 #include "../src/drivers/drivers.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cstdio>
 #include <cwchar>
